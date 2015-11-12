@@ -1,7 +1,9 @@
-from flask import Flask, jsonify, make_response, request
+from flask import Flask, jsonify, make_response, request, g
+import sqlite3
 
 app = Flask(__name__)
 
+DATABASE = '/data/sql/database.db'
 # Eventually:
 # Remove testing 'database' add real database through flask
 # Add URI return for all objects
@@ -94,6 +96,11 @@ def not_found(error):
 def index():
     return "<html><h1><a href='#'>Server running!</a></h1></html>"
 
+def before_request():
+    pass
 
+def after_request():
+    pass
+    
 if __name__ == '__main__':
     app.run(debug=True)
