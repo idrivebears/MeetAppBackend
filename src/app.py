@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, make_response, request, g
 import sqlite3
+import requests
 
 app = Flask(__name__)
 
@@ -54,8 +55,34 @@ events = [
         'guest_list' : [3]
     }
 ]
-################################ THE GREAT DATABASE #######################################
-###########################################################################################
+
+
+#Facebook verification: request https://graph.facebook.com/me?access_token=xxxxxxxxxxxxxxxxx
+
+#get connection to database
+def get_database():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = connect_to_database()
+    return db
+
+#disconnect database on app context close
+@app.teardown_appcontext
+def teardown_request():
+    db = getattr(g, '_database', None)
+
+    if db is not None:
+        db.close()
+
+#Verify token with facebook
+def verify_facebook_token(user_token):
+    #Request verification of token from facebook
+    facebook_response = requests.get("https://graph.facebook.com/me?access_token=%s" %  user_token).content
+
+    #Should do some testing to make sure this works
+    if facebook_response is None or "error" in facebook_response:
+        return False
+    return True
 
 '''
 HERE BE DRAGONS
@@ -96,11 +123,5 @@ def not_found(error):
 def index():
     return "<html><h1><a href='#'>Server running!</a></h1></html>"
 
-def before_request():
-    pass
-
-def after_request():
-    pass
-    
 if __name__ == '__main__':
     app.run(debug=True)
