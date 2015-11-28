@@ -4,58 +4,13 @@ import requests
 
 app = Flask(__name__)
 
-DATABASE = '/data/sql/database.db'
+# Get the hardcoded DB :D
+DATABASE = 'C:\Users\Cam\Documents\GitHub\MeetAppBackend\data\db\Meet.db'
+
 # Eventually:
 # Remove testing 'database' add real database through flask
+
 # Add URI return for all objects
-
-################################ THE GREAT DATABASE #######################################
-###########################################################################################
-# Hard coded as fuck yo, abstract on to classes, handle everything through objects     ####
-users = [
-    {
-        'user_id' : 1,
-        'name' : 'Pedo',
-        'lastname' : 'Lopez',
-        'age' : 21,
-    },
-    {
-        'user_id' : 2,
-        'name' : 'Yoni',
-        'lastname' : 'Elloko',
-        'age' : 28,
-    },
-    {
-        'user_id' : 3,
-        'name' : 'Jaime',
-        'lastname' : 'Rios',
-        'age' : 23,
-    }
-]
-events = [
-    {
-        'event_id' : 1,
-        'name' : u'Peda en casa de pedo',
-        'description' : u'Pos peda en casa de pedo caile',
-        'creator_id' : 1,
-        'guest_list' : [1, 2]
-    },
-    {
-        'event_id' : 2,
-        'name' : u'Maria se nos casa',
-        'description' : u'Caiganle a la boda de Maria',
-        'creator_id' : 1,
-        'guest_list' : [1, 2]
-    },
-    {
-        'event_id' : 3,
-        'name' : u'All by myself pary',
-        'description' : u'Alone alone',
-        'creator_id' : 3,
-        'guest_list' : [3]
-    }
-]
-
 
 #Facebook verification: request https://graph.facebook.com/me?access_token=xxxxxxxxxxxxxxxxx
 
@@ -66,9 +21,17 @@ def get_database():
         db = g._database = connect_to_database()
     return db
 
+def connect_to_database():
+    con = None
+    try:
+        con = sqlite3.connect(DATABASE)
+    except sqlite3.Error, e:
+        print "fucking Error %s:" % e.args[0]
+    return con;
+
 #disconnect database on app context close
 @app.teardown_appcontext
-def teardown_request():
+def teardown_request(self):
     db = getattr(g, '_database', None)
 
     if db is not None:
@@ -85,13 +48,208 @@ def verify_facebook_token(user_token):
     return True
 
 '''
+CAMQUERIES -> GETTERS
+'''
+
+@app.route('/get/User/Info/<string:faceId>', methods=['GET'])
+def get_user_Info(faceId):
+    cur = get_database().cursor()
+    args = (faceId, )
+    cur.execute("""
+                SELECT
+                    MA_USER.Name,
+                    MA_User.LastName,
+                    MA_User.Birthdate,
+                    MA_User.Gender,
+                    Location.Latitude,
+                    Location.Longitude
+                FROM
+                    MA_User,
+                    Location
+                WHERE
+                    MA_User.IDLocation = Location.IDLocation AND
+                    MA_User.FacebookID = ?
+                """, args)
+    query = cur.fetchall()
+    return jsonify({'UserProfileInfo': query})
+
+
+@app.route('/get/User/CreatedEvents/<string:faceId>', methods=['GET'])
+def get_user_createdEvents(faceId):
+    cur = get_database().cursor()
+    args = (faceId, )
+    cur.execute("""
+                SELECT
+            			Event.IDEvent AS 'EventID',
+            			Event.Name AS 'EventName',
+            			Place.Name AS 'PlaceName',
+            			Event.DateTime AS 'EventDateTime'
+            	FROM
+            			MA_User
+            			JOIN Event ON (MA_User.IDUser = Event.IDUser)
+            			JOIN Place ON (Place.IDPlace = Event.IDPlace)
+            	WHERE
+            			MA_User.FacebookID = ?
+            	ORDER BY
+            			Event.DateTime DESC
+                """, args)
+    query = cur.fetchall()
+    return jsonify({'UserCreatedEvents': query})
+
+@app.route('/get/User/AttendedEvents/<string:faceId>', methods=['GET'])
+def get_user_attendedEvents(faceId):
+    cur = get_database().cursor()
+    args = (faceId, )
+    cur.execute("""
+                SELECT
+            			Event.IDEvent AS 'EventID',
+            			Event.Name AS 'EventName',
+            			Place.Name AS 'PlaceName',
+            			Event.DateTime AS 'EventDateTime'
+            	FROM
+            			MA_User
+            			JOIN MA_User_Event ON(MA_User.IDUser = MA_User_Event.IDUser)
+            			JOIN Event ON (MA_User_Event.IDEvent = Event.IDEvent)
+            			JOIN Place ON (Place.IDPlace = Event.IDPlace)
+            	WHERE
+            			Attendance = 1
+            		AND MA_User.FacebookID = ?
+            	ORDER BY
+            			Event.DateTime DESC
+                """, args)
+    query = cur.fetchall()
+    return jsonify({'UserAttendedEvents': query})
+
+@app.route('/get/Place/Profile/<int:placeId>', methods=['GET'])
+def get_place_profile(placeId):
+    cur = get_database().cursor()
+    args = (placeId, )
+    cur.execute("""
+                SELECT
+            		Place.Name AS 'PlaceName',
+            		Category.Name AS 'Category',
+            		Place.Description AS 'PlaceDescription',
+            		Location.Latitude,
+            		Location.Longitude
+                FROM
+                		Place
+                		JOIN Category ON (Category.IDCategory = Place.IDCategory)
+                		JOIN Location ON (Location.IDLocation = PLACE.IDLocation)
+                WHERE
+                		Place.IDPlace = ?
+                """, args)
+
+    query = cur.fetchall()
+    return jsonify({'PlaceProfile': query})
+
+@app.route('/get/User/Friends/<string:faceId>', methods=['Get'])
+def get_user_friendList(faceId):
+    cur = get_database().cursor()
+    args = (faceId, )
+    cur.execute("""
+                SELECT
+            			USER2.FacebookID,
+            			USER2.Name,
+            			USER2.LastName
+            	FROM
+            			MA_User AS USER1,
+            			MA_User AS USER2,
+            			MA_Users_Relation
+            	WHERE
+            			USER1.IDUser = MA_Users_Relation.IDUser_1
+            		AND	USER2.IDUser = MA_Users_Relation.IDUser_2
+            		AND	USER1.FacebookID = ?
+            	ORDER BY
+            			USER2.Name
+                """, args)
+    query = cur.fetchall()
+    return jsonify({'UserFriendList': query})
+@app.route('/get/Events/<string:faceId>/<int:orderByRecommend>')
+def getEvents(faceId, orderByRecommend):
+    cur = get_database().cursor()
+    args = (faceId, )
+    if(orderByRecommend):
+        cur.execute("""
+                    SELECT	EventList.EventName,
+            				EventList.EventDescription,
+            				EventList.EventDateTime,
+            				EventList.PlaceName,
+            				MA_User.Name as 'CreatorFirstName',
+            				MA_User.LastName as 'CreatorLastName'
+            		FROM
+            			(SELECT	Event.Name AS 'EventName',
+            					Event.Description AS 'EventDescription',
+            					Event.DateTime AS 'EventDateTime',
+            					Place.Name AS 'PlaceName',
+            					Event.IDUser AS 'IDCreatorUser',
+            					Recommendation.Weight
+            			FROM	MA_User,
+            					Recommendation,
+            					Event,
+            					Place
+            			WHERE	MA_User.IDUser = Recommendation.IDUser
+            				AND	Event.IDEvent = Recommendation.IDEvent
+            				AND MA_User.FacebookID = ?
+            				AND Event.DateTime >= DATE('now', '-1 day') --CamNote: date function had to be mod for sqlite
+            				AND	Place.IDPlace = Event.IDPlace) AS EventList,
+            			MA_User
+            		WHERE
+            				MA_User.IDUser = EventList.IDCreatorUser
+            		ORDER BY
+            				EventList.Weight DESC
+                    """, args)
+    else:
+        cur.execute("""
+                    SELECT	EventList.EventName,
+            				EventList.EventDescription,
+            				EventList.EventDateTime,
+            				EventList.PlaceName,
+            				MA_User.Name AS 'CreatorFirstName',
+            				MA_User.LastName AS 'CreatorLastName'
+            		FROM
+            			(SELECT	Event.Name AS 'EventName',
+            					Event.Description AS 'EventDescription',
+            					Event.DateTime AS 'EventDateTime',
+            					Place.Name AS 'PlaceName',
+            					Event.IDUser AS 'IDCreatorUser',
+            					Recommendation.Weight
+            			FROM	MA_User,
+            					Recommendation,
+            					Event,
+            					Place
+            			WHERE	MA_User.IDUser = Recommendation.IDUser
+            				AND	Event.IDEvent = Recommendation.IDEvent
+            				AND MA_User.FacebookID = ?
+            				AND Event.DateTime >= DATE('now', '-1 day') --CamNote: date function had to be mod for sqlite
+            				AND	Place.IDPlace = Event.IDPlace) AS EventList,
+            			MA_User
+            		WHERE
+            				MA_User.IDUser = EventList.IDCreatorUser
+            		ORDER BY
+            				EventList.EventDateTime
+                    """, args)
+    query = cur.fetchall()
+    return jsonify({'Events': query})
+
+'''
+CAMQUERIES -> SETTERS
+'''
+@app.route('/post/Event', methods=['POST'])
+def create_event():
+    
+
+'''
 HERE BE DRAGONS
 '''
-@app.route('/get/event/list/<int:user_id>', methods=['GET'])
-def get_eventlist(user_id):
-    """Returns a list of all events the user can attend"""
-    resultList = [event for event in events if user_id in event['guest_list']]
-    return jsonify({'events':resultList})
+#@app.route('/get/event/list/<int:user_id>', methods=['GET'])
+#def get_eventlist(user_id):
+#    """Returns a list of all events the user can attend"""
+#    db = get_database()
+#    cur = db.cursor()
+#    cur.execute("SELECT * FROM MA_User WHERE MA_User.IDUser = %d" % user_id)
+#    query = cur.fetchall()
+#    return jsonify({'User':query})
+
 
 
 @app.route('/post/event', methods=['POST'])
