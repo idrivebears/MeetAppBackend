@@ -14,7 +14,7 @@ class User(object):
     def __init__(self, name, last_name, birthdate, gender, facebookId, is_active=True, max_interactions_friends= 1, max_interactions_places=1):
         #self.id = id
         self.name = name
-        self.last_name = lastname
+        self.last_name = last_name
         self.birthdate = birthdate
         self.gender = gender
         self.facebookId = facebookId

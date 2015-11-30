@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, make_response, request, g
 import sqlite3
 import requests
+import json
 
 from ma_models import *
 
@@ -73,10 +74,8 @@ def get_user_Info(faceId):
                     MA_User.FacebookID = ?
                 """, args)
     query = cur.fetchall()
-    user = User(query[0], query[1], query[2], query[3])
-
-    return jsonify(user)
-
+    user = User(query[0][0], query[0][1], query[0][2], query[0][3], faceId)
+    return json.dumps(user.__dict__)
 
 @app.route('/get/User/CreatedEvents/<string:faceId>', methods=['GET'])
 def get_user_createdEvents(faceId):
