@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, make_response, request, g
 import sqlite3
 import requests
-#from data.Models import User
+
+from ma_models import *
 
 app = Flask(__name__)
 
