@@ -10,20 +10,17 @@ app = Flask(__name__)
 # Get the hardcoded DB :D
 DATABASE = 'C:\Users\gwAwr\Documents\GitHub\MeetAppBackend\data\db\Meet.db'
 
-# Eventually:
-# Remove testing 'database' add real database through flask
-
 # Add URI return for all objects
 
 #Facebook verification: request https://graph.facebook.com/me?access_token=xxxxxxxxxxxxxxxxx
 
-#get connection to database
+# get connection to database
 def get_database():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_to_database()
     return db
-
+# establish connection to database
 def connect_to_database():
     con = None
     try:
@@ -32,7 +29,7 @@ def connect_to_database():
         print "fucking Error %s:" % e.args[0]
     return con;
 
-#disconnect database on app context close
+# disconnect database on app context close
 @app.teardown_appcontext
 def teardown_request(self):
     db = getattr(g, '_database', None)
@@ -40,7 +37,7 @@ def teardown_request(self):
     if db is not None:
         db.close()
 
-#Verify token with facebook
+# Verify token with facebook
 def verify_facebook_token(user_token):
     #Request verification of token from facebook
     facebook_response = requests.get("https://graph.facebook.com/me?access_token=%s" %  user_token).content
@@ -51,9 +48,8 @@ def verify_facebook_token(user_token):
     return True
 
 '''
-CAMQUERIES -> GETTERS
+URL ROUTING
 '''
-
 @app.route('/get/User/Info/<string:faceId>', methods=['GET'])
 def get_user_Info(faceId):
     cur = get_database().cursor()
@@ -74,6 +70,7 @@ def get_user_Info(faceId):
                     MA_User.FacebookID = ?
                 """, args)
     query = cur.fetchall()
+    print query
     user = User(query[0][0], query[0][1], query[0][2], query[0][3], faceId)
     return json.dumps(user.__dict__)
 
