@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, make_response, request, g
 import sqlite3
 import requests
+#from data.Models import User
 
 app = Flask(__name__)
 
 # Get the hardcoded DB :D
-DATABASE = 'C:\Users\Cam\Desktop\MeetAppBackend\data\db\Meet.db'
+DATABASE = 'C:\Users\gwAwr\Documents\GitHub\MeetAppBackend\data\db\Meet.db'
 
 # Eventually:
 # Remove testing 'database' add real database through flask
@@ -71,7 +72,9 @@ def get_user_Info(faceId):
                     MA_User.FacebookID = ?
                 """, args)
     query = cur.fetchall()
-    return jsonify({'UserProfileInfo': query})
+    user = User(query[0], query[1], query[2], query[3])
+
+    return jsonify(user)
 
 
 @app.route('/get/User/CreatedEvents/<string:faceId>', methods=['GET'])
