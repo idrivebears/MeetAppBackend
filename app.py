@@ -4,6 +4,7 @@ import requests
 import json
 
 from ma_models import *
+from ma_logger import Logger
 
 app = Flask(__name__)
 
@@ -18,8 +19,12 @@ def get_database():
     if db is None:
         db = g._database = connect_to_database()
     return db
+
 # establish connection to database
 def connect_to_database():
+    logger = Logger()
+    logger.registerNewAction("New database connection request")
+    logger.log()
     con = None
     try:
         con = sqlite3.connect(DATABASE)
@@ -31,7 +36,9 @@ def connect_to_database():
 @app.teardown_appcontext
 def teardown_request(self):
     db = getattr(g, '_database', None)
-
+    logger = Logger()
+    logger.registerNewAction("Connection to database closed.")
+    logger.log()
     if db is not None:
         db.close()
 
@@ -58,6 +65,8 @@ GETTERS::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 def get_user_Info(faceId):
     cur = get_database().cursor()
     args = (faceId, )
+    logger = Logger()
+    logger.registerNewAction("GET USER request id: " + faceId)
     cur.execute("""
                 SELECT
                     MA_USER.Name,
@@ -76,6 +85,8 @@ def get_user_Info(faceId):
     query = cur.fetchall()
     print query
     user = User(query[0][0], query[0][1], query[0][2], query[0][3], faceId)
+    logger.registerNewAction("GET User built for return")
+    logger.log()
     return json.dumps(user.__dict__)
 
 # Working
@@ -83,6 +94,8 @@ def get_user_Info(faceId):
 def get_user_createdEvents(faceId):
     cur = get_database().cursor()
     args = (faceId, )
+    logger = Logger()
+    logger.registerNewAction("GET User created events id: " + faceId)
     cur.execute("""
                 SELECT
             			Event.IDEvent AS 'EventID',
@@ -99,6 +112,7 @@ def get_user_createdEvents(faceId):
             			Event.DateTime DESC
                 """, args)
     query = cur.fetchall()
+    logger.log()
     return jsonify({'Events:': query})
 
 # Working
@@ -106,6 +120,8 @@ def get_user_createdEvents(faceId):
 def get_user_attendedEvents(faceId):
     cur = get_database().cursor()
     args = (faceId, )
+    logger = Logger()
+    logger.registerNewAction("GET User attended events id: " + faceId)
     cur.execute("""
                 SELECT
             			Event.IDEvent AS 'EventID',
@@ -123,6 +139,7 @@ def get_user_attendedEvents(faceId):
             	ORDER BY
             			Event.DateTime DESC
                 """, args)
+    logger.log()
     query = cur.fetchall()
     return jsonify({'Events': query})
 
@@ -131,6 +148,8 @@ def get_user_attendedEvents(faceId):
 def get_place_profile(placeId):
     cur = get_database().cursor()
     args = (placeId, )
+    logger = Logger()
+    logger.registerNewAction("GET Place profile id: " + placeId)
     cur.execute("""
                 SELECT
             		Place.Name AS 'PlaceName',
@@ -145,6 +164,7 @@ def get_place_profile(placeId):
                 WHERE
                 		Place.IDPlace = ?
                 """, args)
+    logger.log()
     query = cur.fetchall()
     return jsonify({'Place': query})
 
@@ -153,6 +173,8 @@ def get_place_profile(placeId):
 def get_user_friendList(faceId):
     cur = get_database().cursor()
     args = (faceId, )
+    logger = Logger()
+    logger.registerNewAction("GET User friends id:" + faceId)
     cur.execute("""
                 SELECT
             			USER2.FacebookID,
@@ -169,6 +191,7 @@ def get_user_friendList(faceId):
             	ORDER BY
             			USER2.Name
                 """, args)
+    logger.log()
     query = cur.fetchall()
     return jsonify({'Friends': query})
 
@@ -177,6 +200,8 @@ def get_user_friendList(faceId):
 def getEvents(faceId, orderByRecommend):
     cur = get_database().cursor()
     args = (faceId, )
+    logger = Logger()
+    logger.registerNewAction("GET Events id:" + faceId + "Ordered true:" + orderByRecommend)
     if(orderByRecommend):
         cur.execute("""
                     SELECT	EventList.EventName,
@@ -237,6 +262,7 @@ def getEvents(faceId, orderByRecommend):
             		ORDER BY
             				EventList.EventDateTime
                     """, args)
+    logger.log()
     query = cur.fetchall()
     return jsonify({'Events': query})
 
@@ -268,10 +294,16 @@ def create_event():
 @app.errorhandler(404)
 def not_found(error):
     """Return a 404 json instead of 404 html"""
+    logger = Logger()
+    logger.registerNewAction("REQUEST made, 404 reached")
+    logger.log()
     return make_response(jsonify({'error': 'Not found'}), 404)
 
 @app.route('/')
 def index():
+    logger = Logger()
+    logger.registerNewAction("INDEX served")
+    logger.log()
     return "<html><h1><a href='#'>Server running!</a></h1></html>"
 
 if __name__ == '__main__':
