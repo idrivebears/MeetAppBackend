@@ -12,8 +12,6 @@ DATABASE = 'C:\Users\gwAwr\Documents\GitHub\MeetAppBackend\data\db\Meet.db'
 
 # Add URI return for all objects
 
-#Facebook verification: request https://graph.facebook.com/me?access_token=xxxxxxxxxxxxxxxxx
-
 # get connection to database
 def get_database():
     db = getattr(g, '_database', None)
@@ -38,6 +36,7 @@ def teardown_request(self):
         db.close()
 
 # Verify token with facebook
+# Facebook verification: request https://graph.facebook.com/me?access_token=xxxxxxxxxxxxxxxxx
 def verify_facebook_token(user_token):
     #Request verification of token from facebook
     facebook_response = requests.get("https://graph.facebook.com/me?access_token=%s" %  user_token).content
@@ -50,6 +49,11 @@ def verify_facebook_token(user_token):
 '''
 URL ROUTING
 '''
+
+'''
+GETTERS::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+# Working
 @app.route('/get/User/Info/<string:faceId>', methods=['GET'])
 def get_user_Info(faceId):
     cur = get_database().cursor()
@@ -74,6 +78,7 @@ def get_user_Info(faceId):
     user = User(query[0][0], query[0][1], query[0][2], query[0][3], faceId)
     return json.dumps(user.__dict__)
 
+# Working
 @app.route('/get/User/CreatedEvents/<string:faceId>', methods=['GET'])
 def get_user_createdEvents(faceId):
     cur = get_database().cursor()
@@ -94,8 +99,9 @@ def get_user_createdEvents(faceId):
             			Event.DateTime DESC
                 """, args)
     query = cur.fetchall()
-    return jsonify({'UserCreatedEvents': query})
+    return jsonify({'Events:': query})
 
+# Working
 @app.route('/get/User/AttendedEvents/<string:faceId>', methods=['GET'])
 def get_user_attendedEvents(faceId):
     cur = get_database().cursor()
@@ -118,8 +124,9 @@ def get_user_attendedEvents(faceId):
             			Event.DateTime DESC
                 """, args)
     query = cur.fetchall()
-    return jsonify({'UserAttendedEvents': query})
+    return jsonify({'Events': query})
 
+# Working.
 @app.route('/get/Place/Profile/<int:placeId>', methods=['GET'])
 def get_place_profile(placeId):
     cur = get_database().cursor()
@@ -138,10 +145,10 @@ def get_place_profile(placeId):
                 WHERE
                 		Place.IDPlace = ?
                 """, args)
-
     query = cur.fetchall()
-    return jsonify({'PlaceProfile': query})
+    return jsonify({'Place': query})
 
+# Working
 @app.route('/get/User/Friends/<string:faceId>', methods=['Get'])
 def get_user_friendList(faceId):
     cur = get_database().cursor()
@@ -163,7 +170,9 @@ def get_user_friendList(faceId):
             			USER2.Name
                 """, args)
     query = cur.fetchall()
-    return jsonify({'UserFriendList': query})
+    return jsonify({'Friends': query})
+
+# Working
 @app.route('/get/Events/<string:faceId>/<int:orderByRecommend>')
 def getEvents(faceId, orderByRecommend):
     cur = get_database().cursor()
@@ -233,24 +242,10 @@ def getEvents(faceId, orderByRecommend):
 
 '''
 CAMQUERIES -> SETTERS
-
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 @app.route('/post/Event', methods=['POST'])
 def create_event():
 '''
-
-'''
-HERE BE DRAGONS
-'''
-#@app.route('/get/event/list/<int:user_id>', methods=['GET'])
-#def get_eventlist(user_id):
-#    """Returns a list of all events the user can attend"""
-#    db = get_database()
-#    cur = db.cursor()
-#    cur.execute("SELECT * FROM MA_User WHERE MA_User.IDUser = %d" % user_id)
-#    query = cur.fetchall()
-#    return jsonify({'User':query})
-
-
 
 @app.route('/post/event', methods=['POST'])
 def create_event():
@@ -270,12 +265,10 @@ def create_event():
     events.append(event)
     return jsonify({'event': event}), 201                       #success
 
-
 @app.errorhandler(404)
 def not_found(error):
     """Return a 404 json instead of 404 html"""
     return make_response(jsonify({'error': 'Not found'}), 404)
-
 
 @app.route('/')
 def index():

@@ -24,16 +24,16 @@ class User(object):
 
 #Event class as per database requirements
 class Event(object):
-    #IDEvent = 0 EVENT IS IS DECIDED BY THE DATABASE ON INSERTION
-    IDPlace = 0
-    IDUser = 0
+    IDEvent = ""
+    IDPlace = ""
+    IDUser = ""
     name = ''
     description = ''
     datetime = ''
     visibility = ''
 
-    def __init__(self, IDPlace, IDUser, name, description, datetime, visibility):
-        #self.IDEvent = IDEvent
+    def __init__(self, IDEvent = "", IDPlace="", IDUser="", name="", description="", datetime="", visibility=""):
+        self.IDEvent = IDEvent
         self.IDPlace = IDPlace
         self.IDUser = IDUser
         self.name = name
